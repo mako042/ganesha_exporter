@@ -48,13 +48,69 @@ func (m ExportMgr) ShowExports() (uint64, []Export) {
 		log.Panic(call.Err)
 	}
 
-	var header [2]uint64
-	var exports []Export
-	if err := call.Store(&header, &exports); err != nil {
+	var raw []interface{}
+	if err := call.Store(&raw); err != nil {
 		log.Panic(err)
 	}
 
-	return header[0], exports
+	if len(raw) < 2 {
+		log.Panic("invalid dbus response: ShowExports")
+	}
+
+	// Parse header (tt) - two uint64 values
+	header, ok := raw[0].([]interface{})
+	if !ok || len(header) < 2 {
+		log.Panic("invalid header format")
+	}
+	timestamp := header[0].(uint64)
+
+	// Parse exports array
+	exportsRaw, ok := raw[1].([]interface{})
+	if !ok {
+		log.Panic("invalid exports format")
+	}
+
+	exports := make([]Export, 0, len(exportsRaw))
+
+	for _, e := range exportsRaw {
+		item, ok := e.([]interface{})
+		if !ok || len(item) < 5 {
+			continue
+		}
+
+		exp := Export{
+			ExportID: item[0].(uint16),
+			Path:     item[1].(string),
+			Last:     item[3].(uint64),
+		}
+
+		// Parse protocols: ((sb)(sb)(sb)(sb)(sb)(sb)(sb))
+		if protos, ok := item[2].([]interface{}); ok {
+			for i, p := range protos {
+				if i >= 7 {
+					break
+				}
+				pair, ok := p.([]interface{})
+				if !ok || len(pair) < 2 {
+					continue
+				}
+				if i < len(exp.Protocols) {
+					exp.Protocols[i].Name = pair[0].(string)
+					exp.Protocols[i].Enabled = pair[1].(bool)
+				}
+			}
+		}
+
+		// Parse time: (tt) - two uint64 values
+		if ts, ok := item[4].([]interface{}); ok && len(ts) >= 2 {
+			exp.Time.Sec = ts[0].(uint64)
+			exp.Time.Nsec = ts[1].(uint64)
+		}
+
+		exports = append(exports, exp)
+	}
+
+	return timestamp, exports
 }
 
 // GetNFSv3IO retrieves NFSv3 IO statistics for a specific export
