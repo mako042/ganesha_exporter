@@ -60,17 +60,17 @@ func (m ExportMgr) ShowExports() (uint64, []Export) {
 	}
 	timestamp := header[0].(uint64)
 
-	// Parse exports array
-	exportsRaw, ok := call.Body[1].([]interface{})
+	// Parse exports array - it's [][]interface{} (array of arrays)
+	exportsRaw, ok := call.Body[1].([][]interface{})
 	if !ok {
+		log.Printf("DEBUG: exportsRaw type assertion failed, got %T", call.Body[1])
 		log.Panic("invalid exports format")
 	}
 
 	exports := make([]Export, 0, len(exportsRaw))
 
-	for _, e := range exportsRaw {
-		item, ok := e.([]interface{})
-		if !ok || len(item) < 5 {
+	for _, item := range exportsRaw {
+		if len(item) < 5 {
 			continue
 		}
 
