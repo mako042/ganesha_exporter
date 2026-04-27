@@ -1,23 +1,21 @@
 package dbus
 
 import (
-	"github.com/godbus/dbus"
-	"golang.org/x/sys/unix"
 	"log"
+
+	"github.com/godbus/dbus"
 )
 
 // Client Structure of the output of ShowClients dbus call
 type Client struct {
-	Client   string
-	NFSv3    bool
-	MNTv3    bool
-	NLMv4    bool
-	RQUOTA   bool
-	NFSv40   bool
-	NFSv41   bool
-	NFSv42   bool
-	Plan9    bool
-	LastTime unix.Timespec
+	Name      string
+	Protocols map[string]bool
+	Last      uint64
+	Stats     map[string]uint64
+	Total     struct {
+		A uint64
+		B uint64
+	}
 }
 
 // ClientMgr is a handle to dbus object ClientMgr
@@ -39,16 +37,54 @@ func NewClientMgr() ClientMgr {
 	}
 }
 
-func (mgr ClientMgr) ShowClients() (unix.Timespec, []Client) {
-	var clients []Client
-	utime := unix.Timespec{}
-	err := mgr.dbusObject.
-		Call("org.ganesha.nfsd.clientmgr.ShowClients", 0).
-		Store(&utime, &clients)
-	if err != nil {
+func (m ClientMgr) ShowClients() (uint64, []Client) {
+	call := m.dbusObject.Call("org.ganesha.nfsd.clientmgr.ShowClients", 0)
+
+	var raw []interface{}
+	if err := call.Store(&raw); err != nil {
 		log.Panic(err)
 	}
-	return utime, clients
+
+	header := raw[0].([]interface{})
+	clientsRaw := raw[1].([]interface{})
+
+	var clients []Client
+
+	for _, c := range clientsRaw {
+		item := c.([]interface{})
+
+		client := Client{
+			Name:      item[0].(string),
+			Protocols: map[string]bool{},
+			Stats:     map[string]uint64{},
+		}
+
+		// protocols
+		protos := item[1].([]interface{})
+		for _, p := range protos {
+			v := p.([]interface{})
+			client.Protocols[v[0].(string)] = v[1].(bool)
+		}
+
+		client.Last = item[2].(uint64)
+
+		// (ststst)
+		stats := item[3].([]interface{})
+		for i := 0; i < len(stats); i += 2 {
+			key := stats[i].(string)
+			val := stats[i+1].(uint64)
+			client.Stats[key] = val
+		}
+
+		// (tt)
+		total := item[4].([]interface{})
+		client.Total.A = total[0].(uint64)
+		client.Total.B = total[1].(uint64)
+
+		clients = append(clients, client)
+	}
+
+	return header[0].(uint64), clients
 }
 
 func (mgr ClientMgr) GetNFSv3IO(ipaddr string) BasicStats {

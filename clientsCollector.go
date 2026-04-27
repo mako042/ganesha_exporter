@@ -141,11 +141,11 @@ func (ic ClientsCollector) Collect(ch chan<- prometheus.Metric) {
 	var ()
 	_, clients := ic.clientMgr.ShowClients()
 	for _, client := range clients {
-		clientip := client.Client
+		clientip := client.Name
 		if *ic.nfsv3 {
 			var stats dbus.BasicStats
-			if client.NFSv3 {
-				stats = ic.clientMgr.GetNFSv3IO(client.Client)
+			if client.Protocols["NFSv3"] {
+				stats = ic.clientMgr.GetNFSv3IO(client.Name)
 			}
 			ch <- prometheus.MustNewConstMetric(
 				clientsNfsV3RequestedDesc,
@@ -210,8 +210,8 @@ func (ic ClientsCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 		if *ic.nfsv40 {
 			stats := dbus.BasicStats{}
-			if client.NFSv40 {
-				stats = ic.clientMgr.GetNFSv40IO(client.Client)
+			if client.Protocols["NFSv4.0"] {
+				stats = ic.clientMgr.GetNFSv40IO(client.Name)
 			}
 			ch <- prometheus.MustNewConstMetric(
 				clientsNfsV40RequestedDesc,
@@ -276,8 +276,8 @@ func (ic ClientsCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 		if *ic.nfsv41 {
 			stats := dbus.BasicStats{}
-			if client.NFSv41 {
-				stats = ic.clientMgr.GetNFSv41IO(client.Client)
+			if client.Protocols["NFSv4.1"] {
+				stats = ic.clientMgr.GetNFSv41IO(client.Name)
 			}
 			ch <- prometheus.MustNewConstMetric(
 				clientsNfsV41RequestedDesc,
@@ -342,8 +342,8 @@ func (ic ClientsCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 		if *ic.pnfsv41 {
 			stats := dbus.PNFSOperations{}
-			if client.NFSv41 {
-				stats = ic.clientMgr.GetNFSv41Layouts(client.Client)
+			if client.Protocols["NFSv4.1"] {
+				stats = ic.clientMgr.GetNFSv41Layouts(client.Name)
 			}
 			ch <- prometheus.MustNewConstMetric(
 				clientsPnfsLayoutOperationsDesc,
