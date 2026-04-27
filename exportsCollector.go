@@ -147,7 +147,7 @@ func (ic ExportsCollector) Collect(ch chan<- prometheus.Metric) {
 		path := export.Path
 		if *ic.nfsv3 {
 			var stats dbus.BasicStats
-			if export.NFSv3 {
+			if export.Protocols["NFSv3"] {
 				stats = ic.exportMgr.GetNFSv3IO(export.ExportID)
 			}
 			ch <- prometheus.MustNewConstMetric(
@@ -213,7 +213,7 @@ func (ic ExportsCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 		if *ic.nfsv40 {
 			stats := dbus.BasicStats{}
-			if export.NFSv40 {
+			if export.Protocols["NFSv4.0"] {
 				stats = ic.exportMgr.GetNFSv40IO(export.ExportID)
 			}
 			ch <- prometheus.MustNewConstMetric(
@@ -279,7 +279,7 @@ func (ic ExportsCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 		if *ic.nfsv41 {
 			stats := dbus.BasicStats{}
-			if export.NFSv41 {
+			if export.Protocols["NFSv4.1"] {
 				stats = ic.exportMgr.GetNFSv41IO(export.ExportID)
 			}
 			ch <- prometheus.MustNewConstMetric(
@@ -345,7 +345,7 @@ func (ic ExportsCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 		if *ic.pnfsv41 {
 			stats := dbus.PNFSOperations{}
-			if export.NFSv41 {
+			if export.Protocols["NFSv4.1"] {
 				stats = ic.exportMgr.GetNFSv41Layouts(export.ExportID)
 			}
 			ch <- prometheus.MustNewConstMetric(

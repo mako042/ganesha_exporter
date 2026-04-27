@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/godbus/dbus"
-	"golang.org/x/sys/unix"
 )
 
 // Export Structure of the output of ShowExports dbus call
@@ -12,37 +11,10 @@ type Export struct {
 	ExportID uint16
 	Path     string
 
-	F1 struct {
-		Name  string
-		Value bool
-	}
-	F2 struct {
-		Name  string
-		Value bool
-	}
-	F3 struct {
-		Name  string
-		Value bool
-	}
-	F4 struct {
-		Name  string
-		Value bool
-	}
-	F5 struct {
-		Name  string
-		Value bool
-	}
-	F6 struct {
-		Name  string
-		Value bool
-	}
-	F7 struct {
-		Name  string
-		Value bool
-	}
+	Protocols map[string]bool
 
-	Time     uint64
-	TimeSpec struct {
+	Last uint64
+	Time struct {
 		Sec  uint64
 		Nsec uint64
 	}
@@ -67,16 +39,48 @@ func NewExportMgr() ExportMgr {
 	}
 }
 
-func (mgr ExportMgr) ShowExports() (unix.Timespec, []Export) {
-	var exports []Export
-	utime := unix.Timespec{}
-	err := mgr.dbusObject.
-		Call("org.ganesha.nfsd.exportmgr.ShowExports", 0).
-		Store(&utime, &exports)
-	if err != nil {
+func (m ExportMgr) ShowExports() (uint64, []Export) {
+	call := m.dbusObject.Call("org.ganesha.nfsd.exportmgr.ShowExports", 0)
+
+	var raw []interface{}
+	if err := call.Store(&raw); err != nil {
 		log.Panic(err)
 	}
-	return utime, exports
+
+	// raw = [ (tt), array ]
+	header := raw[0].([]interface{})
+	exportsRaw := raw[1].([]interface{})
+
+	var exports []Export
+
+	for _, e := range exportsRaw {
+		item := e.([]interface{})
+
+		exp := Export{
+			ExportID:  item[0].(uint16),
+			Path:      item[1].(string),
+			Protocols: map[string]bool{},
+		}
+
+		// ((sb)(sb)...)
+		flags := item[2].([]interface{})
+		for _, f := range flags {
+			pair := f.([]interface{})
+			name := pair[0].(string)
+			val := pair[1].(bool)
+			exp.Protocols[name] = val
+		}
+
+		exp.Last = item[3].(uint64)
+
+		ts := item[4].([]interface{})
+		exp.Time.Sec = ts[0].(uint64)
+		exp.Time.Nsec = ts[1].(uint64)
+
+		exports = append(exports, exp)
+	}
+
+	return header[0].(uint64), exports
 }
 
 func (mgr ExportMgr) GetNFSv3IO(exportID uint16) BasicStats {
