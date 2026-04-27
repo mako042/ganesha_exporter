@@ -6,13 +6,19 @@ import (
 	"github.com/godbus/dbus"
 )
 
+// ProtocolEntry represents a protocol and its enabled state
+type ProtocolEntry struct {
+	Name    string
+	Enabled bool
+}
+
+// Export represents an NFS Ganesha export
 type Export struct {
 	ExportID  uint16
 	Path      string
-	Protocols map[string]bool
-
-	Last uint64
-	Time struct {
+	Protocols [7]ProtocolEntry // 7 protocols: NFSv3, MNTv3, NLMv4, RQUOTA, NFSv40, NFSv41, NFSv42
+	Last      uint64
+	Time      struct {
 		Sec  uint64
 		Nsec uint64
 	}
@@ -42,65 +48,13 @@ func (m ExportMgr) ShowExports() (uint64, []Export) {
 		log.Panic(call.Err)
 	}
 
-	var raw []interface{}
-	if err := call.Store(&raw); err != nil {
+	var header [2]uint64
+	var exports []Export
+	if err := call.Store(&header, &exports); err != nil {
 		log.Panic(err)
 	}
 
-	if len(raw) < 2 {
-		log.Panic("invalid dbus response: ShowExports")
-	}
-
-	header, ok := raw[0].([]interface{})
-	if !ok || len(header) == 0 {
-		log.Panic("invalid header format")
-	}
-
-	exportsRaw, ok := raw[1].([]interface{})
-	if !ok {
-		log.Panic("invalid exports format")
-	}
-
-	exports := make([]Export, 0, len(exportsRaw))
-
-	for _, e := range exportsRaw {
-		item, ok := e.([]interface{})
-		if !ok || len(item) < 5 {
-			continue
-		}
-
-		exp := Export{
-			ExportID:  item[0].(uint16),
-			Path:      item[1].(string),
-			Protocols: map[string]bool{},
-			Last:      item[3].(uint64),
-		}
-
-		// protocols: [(string bool), ...]
-		if flags, ok := item[2].([]interface{}); ok {
-			for _, f := range flags {
-				pair, ok := f.([]interface{})
-				if !ok || len(pair) < 2 {
-					continue
-				}
-
-				name, _ := pair[0].(string)
-				val, _ := pair[1].(bool)
-
-				exp.Protocols[name] = val
-			}
-		}
-
-		// time: [sec, nsec]
-		if ts, ok := item[4].([]interface{}); ok && len(ts) >= 2 {
-			exp.Time.Sec, _ = ts[0].(uint64)
-			exp.Time.Nsec, _ = ts[1].(uint64)
-		}
-
-		exports = append(exports, exp)
-	}
-
-	return header[0].(uint64), exports
+	return header[0], exports
 }
 
 // GetNFSv3IO retrieves NFSv3 IO statistics for a specific export
