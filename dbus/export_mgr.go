@@ -11,15 +11,41 @@ import (
 type Export struct {
 	ExportID uint16
 	Path     string
-	NFSv3    bool
-	MNTv3    bool
-	NLMv4    bool
-	RQUOTA   bool
-	NFSv40   bool
-	NFSv41   bool
-	NFSv42   bool
-	Plan9    bool
-	LastTime unix.Timespec
+
+	F1 struct {
+		Name  string
+		Value bool
+	}
+	F2 struct {
+		Name  string
+		Value bool
+	}
+	F3 struct {
+		Name  string
+		Value bool
+	}
+	F4 struct {
+		Name  string
+		Value bool
+	}
+	F5 struct {
+		Name  string
+		Value bool
+	}
+	F6 struct {
+		Name  string
+		Value bool
+	}
+	F7 struct {
+		Name  string
+		Value bool
+	}
+
+	Time     uint64
+	TimeSpec struct {
+		Sec  uint64
+		Nsec uint64
+	}
 }
 
 // ExportMgr is a handle to dbus object ExportMgr
