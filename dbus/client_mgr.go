@@ -7,7 +7,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// Client Structure of the output of ShowClients dbus call
+// Client represents an NFS Ganesha client
 type Client struct {
 	Client   string
 	NFSv3    bool
@@ -41,14 +41,85 @@ func NewClientMgr() ClientMgr {
 }
 
 func (mgr ClientMgr) ShowClients() (unix.Timespec, []Client) {
-	var clients []Client
-	utime := unix.Timespec{}
-	err := mgr.dbusObject.
-		Call("org.ganesha.nfsd.clientmgr.ShowClients", 0).
-		Store(&utime, &clients)
-	if err != nil {
-		log.Panic(err)
+	call := mgr.dbusObject.Call("org.ganesha.nfsd.clientmgr.ShowClients", 0)
+	if call.Err != nil {
+		log.Panic(call.Err)
 	}
+
+	if len(call.Body) < 2 {
+		log.Panic("invalid dbus response: ShowClients - not enough body elements")
+	}
+
+	// Parse header (tt) - unix.Timespec {Sec, Nsec}
+	header, ok := call.Body[0].([]interface{})
+	if !ok || len(header) < 2 {
+		log.Panic("invalid header format")
+	}
+	utime := unix.Timespec{
+		Sec:  int64(header[0].(uint64)),
+		Nsec: int64(header[1].(uint64)),
+	}
+
+	// Parse clients array - it's [][]interface{} (array of arrays)
+	clientsRaw, ok := call.Body[1].([][]interface{})
+	if !ok {
+		log.Panic("invalid clients format")
+	}
+
+	clients := make([]Client, 0, len(clientsRaw))
+
+	for _, item := range clientsRaw {
+		if len(item) < 5 {
+			continue
+		}
+
+		client := Client{
+			Client: item[0].(string),
+		}
+
+		// Parse protocols: ((sb)(sb)(sb)(sb)(sb)(sb)(sb)(sb)(sb))
+		if protos, ok := item[1].([]interface{}); ok {
+			for i, p := range protos {
+				if i >= 9 {
+					break
+				}
+				pair, ok := p.([]interface{})
+				if !ok || len(pair) < 2 {
+					continue
+				}
+				enabled := pair[1].(bool)
+				switch i {
+				case 0:
+					client.NFSv3 = enabled
+				case 1:
+					client.MNTv3 = enabled
+				case 2:
+					client.NLMv4 = enabled
+				case 3:
+					client.RQUOTA = enabled
+				case 4:
+					client.NFSv40 = enabled
+				case 5:
+					client.NFSv41 = enabled
+				case 6:
+					client.NFSv42 = enabled
+				case 7:
+					client.Plan9 = enabled
+				}
+			}
+		}
+
+		// LastTime: (tt) - two uint64 values
+		if ts, ok := item[2].([]interface{}); ok && len(ts) >= 2 {
+			client.LastTime = unix.Timespec{
+				Sec:  int64(ts[0].(uint64)),
+				Nsec: int64(ts[1].(uint64)),
+			}
+		}
+
+		clients = append(clients, client)
+	}
+
 	return utime, clients
 }
 
