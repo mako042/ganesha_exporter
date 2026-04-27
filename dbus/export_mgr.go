@@ -7,9 +7,8 @@ import (
 )
 
 type Export struct {
-	ExportID uint16
-	Path     string
-
+	ExportID  uint16
+	Path      string
 	Protocols map[string]bool
 
 	Last uint64
@@ -28,6 +27,7 @@ func NewExportMgr() ExportMgr {
 	if err != nil {
 		log.Panic(err)
 	}
+
 	return ExportMgr{
 		dbusObject: conn.Object(
 			"org.ganesha.nfsd",
@@ -48,7 +48,7 @@ func (m ExportMgr) ShowExports() (uint64, []Export) {
 	}
 
 	if len(raw) < 2 {
-		log.Panic("invalid DBus response: not enough fields")
+		log.Panic("invalid dbus response: ShowExports")
 	}
 
 	header, ok := raw[0].([]interface{})
@@ -73,21 +73,25 @@ func (m ExportMgr) ShowExports() (uint64, []Export) {
 			ExportID:  item[0].(uint16),
 			Path:      item[1].(string),
 			Protocols: map[string]bool{},
+			Last:      item[3].(uint64),
 		}
 
-		flags, _ := item[2].([]interface{})
-		for _, f := range flags {
-			pair, ok := f.([]interface{})
-			if !ok || len(pair) < 2 {
-				continue
+		// protocols: [(string bool), ...]
+		if flags, ok := item[2].([]interface{}); ok {
+			for _, f := range flags {
+				pair, ok := f.([]interface{})
+				if !ok || len(pair) < 2 {
+					continue
+				}
+
+				name, _ := pair[0].(string)
+				val, _ := pair[1].(bool)
+
+				exp.Protocols[name] = val
 			}
-			name, _ := pair[0].(string)
-			val, _ := pair[1].(bool)
-			exp.Protocols[name] = val
 		}
 
-		exp.Last, _ = item[3].(uint64)
-
+		// time: [sec, nsec]
 		if ts, ok := item[4].([]interface{}); ok && len(ts) >= 2 {
 			exp.Time.Sec, _ = ts[0].(uint64)
 			exp.Time.Nsec, _ = ts[1].(uint64)
