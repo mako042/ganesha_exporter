@@ -3,8 +3,8 @@ package main
 import (
 	"strconv"
 
-	"github.com/mako042/ganesha_exporter/dbus"
 	"github.com/alecthomas/kingpin/v2"
+	"github.com/mako042/ganesha_exporter/dbus"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

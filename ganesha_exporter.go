@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/alecthomas/kingpin/v2"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/mako042/ganesha_exporter/dbus"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
@@ -57,7 +56,4 @@ func main() {
 
 	log.Infoln("Listening on", *listenAddress)
 	log.Fatal(http.ListenAndServe(*listenAddress, nil))
-	mgr := dbus.NewExportMgr()
-	time, exports := mgr.ShowExports()
-	spew.Dump(time, exports)
 }

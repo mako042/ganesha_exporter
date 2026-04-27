@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/mako042/ganesha_exporter/dbus"
 	"github.com/alecthomas/kingpin/v2"
+	"github.com/mako042/ganesha_exporter/dbus"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -141,11 +141,11 @@ func (ic ClientsCollector) Collect(ch chan<- prometheus.Metric) {
 	var ()
 	_, clients := ic.clientMgr.ShowClients()
 	for _, client := range clients {
-		clientip := client.Name
+		clientip := client.Client
 		if *ic.nfsv3 {
 			var stats dbus.BasicStats
-			if client.Protocols["NFSv3"] {
-				stats = ic.clientMgr.GetNFSv3IO(client.Name)
+			if client.NFSv3 {
+				stats = ic.clientMgr.GetNFSv3IO(client.Client)
 			}
 			ch <- prometheus.MustNewConstMetric(
 				clientsNfsV3RequestedDesc,
@@ -210,8 +210,8 @@ func (ic ClientsCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 		if *ic.nfsv40 {
 			stats := dbus.BasicStats{}
-			if client.Protocols["NFSv4.0"] {
-				stats = ic.clientMgr.GetNFSv40IO(client.Name)
+			if client.NFSv40 {
+				stats = ic.clientMgr.GetNFSv40IO(client.Client)
 			}
 			ch <- prometheus.MustNewConstMetric(
 				clientsNfsV40RequestedDesc,
@@ -276,8 +276,8 @@ func (ic ClientsCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 		if *ic.nfsv41 {
 			stats := dbus.BasicStats{}
-			if client.Protocols["NFSv4.1"] {
-				stats = ic.clientMgr.GetNFSv41IO(client.Name)
+			if client.NFSv41 {
+				stats = ic.clientMgr.GetNFSv41IO(client.Client)
 			}
 			ch <- prometheus.MustNewConstMetric(
 				clientsNfsV41RequestedDesc,
@@ -342,8 +342,8 @@ func (ic ClientsCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 		if *ic.pnfsv41 {
 			stats := dbus.PNFSOperations{}
-			if client.Protocols["NFSv4.1"] {
-				stats = ic.clientMgr.GetNFSv41Layouts(client.Name)
+			if client.NFSv41 {
+				stats = ic.clientMgr.GetNFSv41Layouts(client.Client)
 			}
 			ch <- prometheus.MustNewConstMetric(
 				clientsPnfsLayoutOperationsDesc,
