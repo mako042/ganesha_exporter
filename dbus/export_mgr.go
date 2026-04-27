@@ -48,9 +48,31 @@ func (m ExportMgr) ShowExports() (uint64, []Export) {
 		log.Panic(call.Err)
 	}
 
+	// DEBUG: Print raw body
+	log.Printf("DEBUG: ShowExports call.Body length: %d", len(call.Body))
+	for i, v := range call.Body {
+		log.Printf("DEBUG: call.Body[%d] type=%T value=%v", i, v, v)
+	}
+
 	var raw []interface{}
 	if err := call.Store(&raw); err != nil {
+		log.Printf("DEBUG: Store error: %v", err)
 		log.Panic(err)
+	}
+
+	log.Printf("DEBUG: raw length: %d", len(raw))
+	for i, v := range raw {
+		log.Printf("DEBUG: raw[%d] type=%T value=%v", i, v, v)
+		if slice, ok := v.([]interface{}); ok {
+			for j, sv := range slice {
+				log.Printf("DEBUG:   raw[%d][%d] type=%T value=%v", i, j, sv, sv)
+				if innerSlice, ok := sv.([]interface{}); ok {
+					for k, isv := range innerSlice {
+						log.Printf("DEBUG:     raw[%d][%d][%d] type=%T value=%v", i, j, k, isv, isv)
+					}
+				}
+			}
+		}
 	}
 
 	if len(raw) < 2 {
@@ -72,12 +94,15 @@ func (m ExportMgr) ShowExports() (uint64, []Export) {
 
 	exports := make([]Export, 0, len(exportsRaw))
 
-	for _, e := range exportsRaw {
+	for idx, e := range exportsRaw {
+		log.Printf("DEBUG: processing export[%d] type=%T value=%v", idx, e, e)
 		item, ok := e.([]interface{})
 		if !ok || len(item) < 5 {
+			log.Printf("DEBUG: export[%d] has %d elements, skipping", idx, len(item))
 			continue
 		}
 
+		log.Printf("DEBUG: export[%d] ExportID=%v Path=%v", idx, item[0], item[1])
 		exp := Export{
 			ExportID: item[0].(uint16),
 			Path:     item[1].(string),
@@ -86,6 +111,7 @@ func (m ExportMgr) ShowExports() (uint64, []Export) {
 
 		// Parse protocols: ((sb)(sb)(sb)(sb)(sb)(sb)(sb))
 		if protos, ok := item[2].([]interface{}); ok {
+			log.Printf("DEBUG: export[%d] protocols count=%d", idx, len(protos))
 			for i, p := range protos {
 				if i >= 7 {
 					break
