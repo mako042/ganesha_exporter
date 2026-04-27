@@ -1,4 +1,4 @@
-module github.com/Gandi/ganesha_exporter
+module github.com/mako042/ganesha_exporter
 
 go 1.22.5
 

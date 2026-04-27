@@ -3,9 +3,9 @@ package main
 import (
 	"net/http"
 
-	"github.com/Gandi/ganesha_exporter/dbus"
 	"github.com/alecthomas/kingpin/v2"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/mako042/ganesha_exporter/dbus"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -17,7 +17,7 @@ func main() {
 	var (
 		listenAddress     = kingpin.Flag("web.listen-address", "Address on which to expose metrics and web interface.").Default(":9587").String()
 		metricsPath       = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
-		gandi             = kingpin.Flag("gandi", "Activate Gandi specific fields").Default("false").Bool()
+		gandi             = kingpin.Flag("gandi", "Activate mako042 specific fields").Default("false").Bool()
 		exporterCollector = kingpin.Flag("collector.exports", "Activate exports collector").Default("true").Bool()
 	)
 	ec := NewExportsCollector()
