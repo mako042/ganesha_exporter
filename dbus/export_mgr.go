@@ -196,3 +196,47 @@ func (m ExportMgr) GetNFSv41Layouts(exportID uint16) PNFSOperations {
 	}
 	return out
 }
+
+// GetNFSv42IO retrieves NFSv4.2 IO statistics for a specific export
+func (m ExportMgr) GetNFSv42IO(exportID uint16) BasicStats {
+	out := BasicStats{}
+	call := m.dbusObject.Call("org.ganesha.nfsd.exportstats.GetNFSv42IO", 0, exportID)
+	if call.Err != nil {
+		log.Panic(call.Err)
+	}
+	if !call.Body[0].(bool) {
+		if err := call.Store(&out.Status, &out.Error, &out.Time); err != nil {
+			log.Panic(err)
+		}
+		return out
+	}
+	if err := call.Store(
+		&out.Status, &out.Error, &out.Time,
+		&out.Read, &out.Write,
+	); err != nil {
+		log.Panic(err)
+	}
+	return out
+}
+
+// GetNFSv42Layouts retrieves pNFSv4.2 layout statistics for a specific export
+func (m ExportMgr) GetNFSv42Layouts(exportID uint16) PNFSOperations {
+	out := PNFSOperations{}
+	call := m.dbusObject.Call("org.ganesha.nfsd.exportstats.GetNFSv42Layouts", 0, exportID)
+	if call.Err != nil {
+		log.Panic(call.Err)
+	}
+	if !call.Body[0].(bool) {
+		if err := call.Store(&out.Status, &out.Error, &out.Time); err != nil {
+			log.Panic(err)
+		}
+		return out
+	}
+	if err := call.Store(
+		&out.Status, &out.Error, &out.Time,
+		&out.Getdevinfo, &out.LayoutGet, &out.LayoutCommit, &out.LayoutReturn, &out.LayoutRecall,
+	); err != nil {
+		log.Panic(err)
+	}
+	return out
+}

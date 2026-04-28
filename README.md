@@ -19,7 +19,6 @@ Flags:
                                  Address on which to expose metrics and web interface.
       --web.telemetry-path="/metrics"
                                  Path under which to expose metrics.
-      --gandi                    Activate Gandi specific fields
       --collector.exports        Activate exports collector
       --collector.exports.nfsv3  Activate NFSv3 stats
       --collector.exports.nfsv40
@@ -28,6 +27,10 @@ Flags:
                                  Activate NFSv4.1 stats
       --collector.exports.pnfsv41
                                  Activate pNFSv4.1 stats
+      --collector.exports.nfsv42
+                                 Activate NFSv4.2 stats
+      --collector.exports.pnfsv42
+                                 Activate pNFSv4.2 stats
       --collector.clients        Activate clients collector
       --collector.clients.nfsv3  Activate NFSv3 stats
       --collector.clients.nfsv40
@@ -36,6 +39,10 @@ Flags:
                                  Activate NFSv4.1 stats
       --collector.clients.pnfsv41
                                  Activate pNFSv4.1 stats
+      --collector.clients.nfsv42
+                                 Activate NFSv4.2 stats
+      --collector.clients.pnfsv42
+                                 Activate pNFSv4.2 stats
       --log.level="info"         Only log messages with the given severity or above. Valid levels: [debug,
                                  info, warn, error, fatal]
       --log.format="logger:stderr"

@@ -97,6 +97,36 @@ var (
 		"Cumulative time spent in rpc wait queue for NFSv4.1",
 		[]string{"direction", "clientip"}, nil,
 	)
+	clientsNfsV42RequestedDesc = prometheus.NewDesc(
+		"ganesha_clients_nfs_v42_requested_bytes_total",
+		"Number of requested bytes for NFSv4.2 operations",
+		[]string{"direction", "clientip"}, nil,
+	)
+	clientsNfsV42TransferedDesc = prometheus.NewDesc(
+		"ganesha_clients_nfs_v42_transfered_bytes_total",
+		"Number of transfered bytes for NFSv4.2 operations",
+		[]string{"direction", "clientip"}, nil,
+	)
+	clientsNfsV42OperationsDesc = prometheus.NewDesc(
+		"ganesha_clients_nfs_v42_operations_total",
+		"Number of operations for NFSv4.2",
+		[]string{"direction", "clientip"}, nil,
+	)
+	clientsNfsV42ErrorsDesc = prometheus.NewDesc(
+		"ganesha_clients_nfs_v42_operations_errors_total",
+		"Number of operations in error for NFSv4.2",
+		[]string{"direction", "clientip"}, nil,
+	)
+	clientsNfsV42LatencyDesc = prometheus.NewDesc(
+		"ganesha_clients_nfs_v42_operations_latency_seconds_total",
+		"Cumulative time consumed by operations for NFSv4.2",
+		[]string{"direction", "clientip"}, nil,
+	)
+	clientsNfsV42QueueWaitDesc = prometheus.NewDesc(
+		"ganesha_clients_nfs_v42_operations_queue_wait_seconds_total",
+		"Cumulative time spent in rpc wait queue for NFSv4.2",
+		[]string{"direction", "clientip"}, nil,
+	)
 	clientsPnfsLayoutOperationsDesc = prometheus.NewDesc(
 		"ganesha_clients_pnfs_v41_layout_operations_total",
 		"Numer of layout operations for pNFSv4.1",
@@ -112,12 +142,28 @@ var (
 		"Cumulative delay time for pNFSv4.1",
 		[]string{"direction", "clientip"}, nil,
 	)
+	clientsPnfsV42LayoutOperationsDesc = prometheus.NewDesc(
+		"ganesha_clients_pnfs_v42_layout_operations_total",
+		"Numer of layout operations for pNFSv4.2",
+		[]string{"type", "clientip"}, nil,
+	)
+	clientsPnfsV42LayoutErrorsDesc = prometheus.NewDesc(
+		"ganesha_clients_pnfs_v42_layout_operations_errors_total",
+		"Numer of layout operations in error for pNFSv4.2",
+		[]string{"type", "clientip"}, nil,
+	)
+	clientsPnfsV42LayoutDelayDesc = prometheus.NewDesc(
+		"ganesha_clients_pnfs_v42_layout_delay_seconds_total",
+		"Cumulative delay time for pNFSv4.2",
+		[]string{"direction", "clientip"}, nil,
+	)
 )
 
 // ClientsCollector Collector for ganesha clients
 type ClientsCollector struct {
 	clientMgr                      dbus.ClientMgr
 	nfsv3, nfsv40, nfsv41, pnfsv41 *bool
+	nfsv42, pnfsv42                *bool
 }
 
 // NewClientsCollector creates a new collector
@@ -128,6 +174,8 @@ func NewClientsCollector() ClientsCollector {
 		nfsv40:    kingpin.Flag("collector.clients.nfsv40", "Activate NFSv4.0 stats").Default("true").Bool(),
 		nfsv41:    kingpin.Flag("collector.clients.nfsv41", "Activate NFSv4.1 stats").Default("true").Bool(),
 		pnfsv41:   kingpin.Flag("collector.clients.pnfsv41", "Activate pNFSv4.1 stats").Default("true").Bool(),
+		nfsv42:    kingpin.Flag("collector.clients.nfsv42", "Activate NFSv4.2 stats").Default("true").Bool(),
+		pnfsv42:   kingpin.Flag("collector.clients.pnfsv42", "Activate pNFSv4.2 stats").Default("true").Bool(),
 	}
 }
 
@@ -417,6 +465,153 @@ func (ic ClientsCollector) Collect(ch chan<- prometheus.Metric) {
 				"recall", clientip)
 			ch <- prometheus.MustNewConstMetric(
 				clientsPnfsLayoutDelayDesc,
+				prometheus.CounterValue,
+				float64(stats.LayoutRecall.Delays)/1e9,
+				"recall", clientip)
+		}
+		if *ic.nfsv42 {
+			stats := dbus.BasicStats{}
+			if client.NFSv42 {
+				stats = ic.clientMgr.GetNFSv42IO(client.Client)
+			}
+			ch <- prometheus.MustNewConstMetric(
+				clientsNfsV42RequestedDesc,
+				prometheus.CounterValue,
+				float64(stats.Read.Requested),
+				"read", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsNfsV42TransferedDesc,
+				prometheus.CounterValue,
+				float64(stats.Read.Transfered),
+				"read", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsNfsV42OperationsDesc,
+				prometheus.CounterValue,
+				float64(stats.Read.Total),
+				"read", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsNfsV42ErrorsDesc,
+				prometheus.CounterValue,
+				float64(stats.Read.Errors),
+				"read", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsNfsV42LatencyDesc,
+				prometheus.CounterValue,
+				float64(stats.Read.Latency)/1e9,
+				"read", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsNfsV42QueueWaitDesc,
+				prometheus.CounterValue,
+				float64(stats.Read.QueueWait)/1e9,
+				"read", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsNfsV42RequestedDesc,
+				prometheus.CounterValue,
+				float64(stats.Write.Requested),
+				"write", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsNfsV42TransferedDesc,
+				prometheus.CounterValue,
+				float64(stats.Write.Transfered),
+				"write", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsNfsV42OperationsDesc,
+				prometheus.CounterValue,
+				float64(stats.Write.Total),
+				"write", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsNfsV42ErrorsDesc,
+				prometheus.CounterValue,
+				float64(stats.Write.Errors),
+				"write", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsNfsV42LatencyDesc,
+				prometheus.CounterValue,
+				float64(stats.Write.Latency)/1e9,
+				"write", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsNfsV42QueueWaitDesc,
+				prometheus.CounterValue,
+				float64(stats.Write.QueueWait)/1e9,
+				"write", clientip)
+		}
+		if *ic.pnfsv42 {
+			stats := dbus.PNFSOperations{}
+			if client.NFSv42 {
+				stats = ic.clientMgr.GetNFSv42Layouts(client.Client)
+			}
+			ch <- prometheus.MustNewConstMetric(
+				clientsPnfsV42LayoutOperationsDesc,
+				prometheus.CounterValue,
+				float64(stats.Getdevinfo.Total),
+				"getdevinfo", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsPnfsV42LayoutErrorsDesc,
+				prometheus.CounterValue,
+				float64(stats.Getdevinfo.Errors),
+				"getdevinfo", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsPnfsV42LayoutDelayDesc,
+				prometheus.CounterValue,
+				float64(stats.Getdevinfo.Delays)/1e9,
+				"getdevinfo", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsPnfsV42LayoutOperationsDesc,
+				prometheus.CounterValue,
+				float64(stats.LayoutGet.Total),
+				"get", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsPnfsV42LayoutErrorsDesc,
+				prometheus.CounterValue,
+				float64(stats.LayoutGet.Errors),
+				"get", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsPnfsV42LayoutDelayDesc,
+				prometheus.CounterValue,
+				float64(stats.LayoutGet.Delays)/1e9,
+				"get", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsPnfsV42LayoutOperationsDesc,
+				prometheus.CounterValue,
+				float64(stats.LayoutCommit.Total),
+				"commit", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsPnfsV42LayoutErrorsDesc,
+				prometheus.CounterValue,
+				float64(stats.LayoutCommit.Errors),
+				"commit", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsPnfsV42LayoutDelayDesc,
+				prometheus.CounterValue,
+				float64(stats.LayoutCommit.Delays)/1e9,
+				"commit", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsPnfsV42LayoutOperationsDesc,
+				prometheus.CounterValue,
+				float64(stats.LayoutReturn.Total),
+				"return", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsPnfsV42LayoutErrorsDesc,
+				prometheus.CounterValue,
+				float64(stats.LayoutReturn.Errors),
+				"return", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsPnfsV42LayoutDelayDesc,
+				prometheus.CounterValue,
+				float64(stats.LayoutReturn.Delays)/1e9,
+				"return", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsPnfsV42LayoutOperationsDesc,
+				prometheus.CounterValue,
+				float64(stats.LayoutRecall.Total),
+				"recall", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsPnfsV42LayoutErrorsDesc,
+				prometheus.CounterValue,
+				float64(stats.LayoutRecall.Errors),
+				"recall", clientip)
+			ch <- prometheus.MustNewConstMetric(
+				clientsPnfsV42LayoutDelayDesc,
 				prometheus.CounterValue,
 				float64(stats.LayoutRecall.Delays)/1e9,
 				"recall", clientip)
